@@ -150,8 +150,8 @@ inline double determine_cpu_freq() {
     freq = get_cpu_brand_frequency();
     if (freq == 0.0) {
         std::cout << "Warning: Can't determine processor tsc frequency from CPU brand string. Using the default value "
-                "of 1 GHz." << std::endl;
-        freq = 1.0;
+                "of 2.8 GHz." << std::endl;
+        freq = 2.8;
     }
     std::cout << "Info: CPU tsc frequency determined as "
               << std::fixed << std::setprecision(2) << freq << " GHz." << std::endl;
