@@ -68,6 +68,12 @@ struct ycsb_op_t {
     bool is_write;
     uint32_t key;
     int16_t col_n;
+    enum YcsbOpType : uint16_t {
+        READ,
+        FULLREAD,
+        RMW,
+        WRITE
+    } op_type;
     col_type write_value;
 };
 
@@ -130,6 +136,11 @@ public:
     std::vector<ycsb_txn_t> workload;
 
 private:
+    static void __attribute__((noinline)) force_copy(col_type *dst, const col_type *src) {
+        static_assert(sizeof(col_type) == 100);
+        memcpy(dst, src, sizeof(col_type));
+    }
+
     ycsb_db<DBParams>& db;
     ycsb_input_generator ig;
     int runner_id;

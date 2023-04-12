@@ -3,6 +3,7 @@
 
 #include <set>
 #include "YCSB_bench.hh"
+#include "YCSB_structs.hh"
 
 namespace ycsb {
 
@@ -55,18 +56,25 @@ void ycsb_runner<DBParams>::gen_workload(uint64_t threadid, int txn_size, double
         }
         bool any_write = false;
         for (auto it = key_set.begin(); it != key_set.end(); ++it) {
-            bool is_write = ud->sample() < write_threshold;
-            if (mode == mode_id::YCSB_A) {
-
-            } else if (mode == mode_id::YCSB_F) {
-
-            }
             ycsb_op_t op {};
             if (collapse) {
                 op.is_write = (collapse_type == 2) || (write_first && it == key_set.begin());
                 txn.collapse_type = collapse_type;
             } else {
                 op.is_write = ud->sample() < write_threshold;
+            }
+            if (op.is_write) {
+                if (mode == mode_id::YCSB_A || mode == mode_id::YCSB_B || mode == mode_id::YCSB_C) {
+                    op.op_type = ycsb_op_t::YcsbOpType::WRITE;
+                } else if (mode == mode_id::YCSB_F) {
+                    op.op_type = ycsb_op_t::YcsbOpType::RMW;
+                } 
+            } else {
+                if (full_read) {
+                    op.op_type = ycsb_op_t::YcsbOpType::FULLREAD;
+                } else {
+                    op.op_type = ycsb_op_t::YcsbOpType::READ;
+                }
             }
             op.key = *it;
             op.col_n = ud->sample() % (2*HALF_NUM_COLUMNS); /*column number*/
@@ -88,6 +96,7 @@ void ycsb_runner<DBParams>::run_txn(const ycsb_txn_t& txn) {
     col_type output;
     typedef ycsb_value::NamedColumn nm;
 
+    /* mod: this cannot prevent the copy from being optimized away. */
     (void)output;
 
     TRANSACTION {
@@ -100,15 +109,25 @@ void ycsb_runner<DBParams>::run_txn(const ycsb_txn_t& txn) {
             (void)col_group;
             if (op.is_write) {
                 ycsb_key key(op.key);
+
+                /* mod: RMW cannot do update even in Commute mode */
+                access_t access_type;
+                if (Commute && op.op_type != ycsb_op_t::YcsbOpType::RMW) {
+                    access_type = access_t::write;  // note: write here means blind write
+                } else {
+                    access_type = access_t::update;
+                }
+
                 auto [success, result, row, value]
                     = db.ycsb_table().select_split_row(key,
-                    {{col_group, Commute ? access_t::write : access_t::update}}
+                    {{col_group, access_type}}
                 );
+
                 (void)result;
                 TXN_DO(success);
                 assert(result);
 
-                if constexpr (Commute) {
+                if (Commute && op.op_type != ycsb_op_t::YcsbOpType::RMW) {
                     commutators::Commutator<ycsb_value> comm(op.col_n, op.write_value);
                     db.ycsb_table().update_row(row, comm);
 #if TABLE_FINE_GRAINED
@@ -139,16 +158,40 @@ void ycsb_runner<DBParams>::run_txn(const ycsb_txn_t& txn) {
                 }
             } else {
                 ycsb_key key(op.key);
-                auto [success, result, row, value]
-                    = db.ycsb_table().select_split_row(key, {{col_group, access_t::read}});
-                (void)result; (void)row;
-                TXN_DO(success);
-                assert(result);
-
-                if (col_parity) {
-                    output = value.odd_columns()[op.col_n/2];
+                if (op.op_type == ycsb_op_t::YcsbOpType::FULLREAD) {
+                    /* mod: for full record read, read both groups and from all columns */
+                    {
+                        auto [success, result, row, value]
+                            = db.ycsb_table().select_split_row(key, {{nm::odd_columns, access_t::read}});
+                        (void)result; (void)row;
+                        TXN_DO(success);
+                        assert(result);
+                        for (int col_n = 0; col_n < HALF_NUM_COLUMNS; col_n++) {
+                            force_copy(&output, &(value.odd_columns()[col_n]));
+                        }
+                    }
+                    {
+                        auto [success, result, row, value]
+                            = db.ycsb_table().select_split_row(key, {{nm::even_columns, access_t::read}});
+                        (void)result; (void)row;
+                        TXN_DO(success);
+                        assert(result);
+                        for (int col_n = 0; col_n < HALF_NUM_COLUMNS; col_n++) {
+                            force_copy(&output, &(value.even_columns()[col_n]));
+                        }
+                    }
                 } else {
-                    output = value.even_columns()[op.col_n/2];
+                    auto [success, result, row, value]
+                        = db.ycsb_table().select_split_row(key, {{col_group, access_t::read}});
+                    (void)result; (void)row;
+                    TXN_DO(success);
+                    assert(result);
+
+                    if (col_parity) {
+                        force_copy(&output, &(value.odd_columns()[op.col_n / 2]));
+                    } else {
+                        force_copy(&output, &(value.even_columns()[op.col_n / 2]));
+                    }
                 }
             }
         }
