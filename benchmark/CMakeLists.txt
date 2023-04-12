@@ -12,7 +12,7 @@ add_executable(voter_bench Voter_txns.hh Voter_structs.hh Voter_bench.hh Voter_b
 add_executable(rubis_bench Rubis_bench.cc Rubis_bench.hh Rubis_structs.hh Rubis_txns.hh Rubis_commutators.hh Rubis_selectors.hh ${COMMON_HEADERS})
 
 target_link_libraries(tpcc_bench db_index sto clp profiler barrier masstree json dprint xxhash ${PLATFORM_LIBRARIES})
-target_link_libraries(ycsb_bench db_index sto clp profiler barrier masstree json dprint xxhash ${PLATFORM_LIBRARIES})
+target_link_libraries(ycsb_bench db_index sto clp profiler barrier masstree json dprint xxhash ${PLATFORM_LIBRARIES} platform_features)
 target_link_libraries(ht_bench db_index sto clp profiler barrier masstree json dprint xxhash ${PLATFORM_LIBRARIES})
 target_link_libraries(micro_bench db_index sto clp profiler barrier masstree json dprint ${PLATFORM_LIBRARIES})
 target_link_libraries(pred_bench db_index sto clp profiler barrier masstree json dprint ${PLATFORM_LIBRARIES})

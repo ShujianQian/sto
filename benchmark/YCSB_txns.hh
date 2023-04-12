@@ -9,8 +9,8 @@ namespace ycsb {
 static constexpr uint64_t max_txns = 200000;
 
 template <typename DBParams>
-void ycsb_runner<DBParams>::gen_workload(uint64_t threadid, int txn_size) {
-    dist_init();
+void ycsb_runner<DBParams>::gen_workload(uint64_t threadid, int txn_size, double ycsb_skew, bool full_read) {
+    dist_init(ycsb_skew);
     const int collapse = txn_size < 0 ? -txn_size : 0;
     int tsz_factor = 1;  // For collapse experiments
     bool write_first = false;  // For collapse experiments
@@ -55,6 +55,12 @@ void ycsb_runner<DBParams>::gen_workload(uint64_t threadid, int txn_size) {
         }
         bool any_write = false;
         for (auto it = key_set.begin(); it != key_set.end(); ++it) {
+            bool is_write = ud->sample() < write_threshold;
+            if (mode == mode_id::YCSB_A) {
+
+            } else if (mode == mode_id::YCSB_F) {
+
+            }
             ycsb_op_t op {};
             if (collapse) {
                 op.is_write = (collapse_type == 2) || (write_first && it == key_set.begin());

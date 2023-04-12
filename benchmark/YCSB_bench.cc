@@ -13,15 +13,18 @@ using namespace db_params;
 using bench::db_profiler;
 
 enum {
-    opt_dbid = 1, opt_nthrs, opt_mode, opt_time, opt_perf, opt_pfcnt, opt_gc,
+    opt_dbid = 1, opt_nthrs, opt_mode, opt_time, opt_skew, opt_readtype, opt_perf, opt_pfcnt, opt_gc,
     opt_node, opt_comm
 };
 
+/* mod: add ycsb skew factor and read type as argument */
 static const Clp_Option options[] = {
     { "dbid",         'i', opt_dbid,  Clp_ValString, Clp_Optional },
     { "nthreads",     't', opt_nthrs, Clp_ValInt,    Clp_Optional },
     { "mode",         'm', opt_mode,  Clp_ValString, Clp_Optional },
     { "time",         'l', opt_time,  Clp_ValDouble, Clp_Optional },
+    { "skew",         's', opt_skew,  Clp_ValDouble, Clp_Optional },
+    { "readtype",     'r', opt_readtype,  Clp_ValString, Clp_Optional },
     { "perf",         'p', opt_perf,  Clp_NoVal,     Clp_Optional },
     { "perf-counter", 'c', opt_pfcnt, Clp_NoVal,     Clp_Negate| Clp_Optional },
     { "gc",           'g', opt_gc,    Clp_NoVal,     Clp_Negate| Clp_Optional },
@@ -135,11 +138,12 @@ public:
         txn_result.collapse2_count = collapse_cnt[1];
     }
 
-    static void workload_generation(std::vector<ycsb_runner<DBParams>>& runners, mode_id mode) {
+    static void workload_generation(std::vector<ycsb_runner<DBParams>>& runners, mode_id mode, double ycsb_skew, bool full_read) {
         std::vector<std::thread> thrs;
-        int tsize = 16;
-        if (mode == mode_id::ReadOnly) {
-            tsize = 2;
+        /* mod: use 10 queries per txn to match epic evaluation */
+        int tsize = 10;
+        if (mode == mode_id::YCSB_C) {
+            tsize = 10;
         } else if (mode == mode_id::WriteCollapse) {
             tsize = -1;
         } else if (mode == mode_id::RWCollapse) {
@@ -149,7 +153,7 @@ public:
         }
         for (uint64_t i = 0; i < runners.size(); ++i) {
             thrs.emplace_back(
-                    &ycsb_runner<DBParams>::gen_workload, std::ref(runners[i]), i, tsize);
+                    &ycsb_runner<DBParams>::gen_workload, std::ref(runners[i]), i, tsize, ycsb_skew, full_read);
         }
         for (auto& t : thrs)
             t.join();
@@ -186,9 +190,11 @@ public:
         bool spawn_perf = false;
         bool counter_mode = false;
         int num_threads = 1;
-        mode_id mode = mode_id::ReadOnly;
+        mode_id mode = mode_id::YCSB_C;
         double time_limit = 10.0;
         bool enable_gc = false;
+        double ycsb_skew = 0.0;
+        bool full_read = true;
 
         Clp_Parser *clp = Clp_NewParser(argc, argv, arraysize(options), options);
 
@@ -204,13 +210,16 @@ public:
             case opt_mode: {
                 switch (*clp->val.s) {
                 case 'A':
-                    mode = mode_id::HighContention;
+                    mode = mode_id::YCSB_A;
                     break;
                 case 'B':
-                    mode = mode_id::MediumContention;
+                    mode = mode_id::YCSB_B;
                     break;
                 case 'C':
-                    mode = mode_id::ReadOnly;
+                    mode = mode_id::YCSB_C;
+                    break;
+                case 'F':
+                    mode = mode_id::YCSB_F;
                     break;
                 case 'X':
                     mode = mode_id::WriteCollapse;
@@ -245,6 +254,17 @@ public:
                 break;
             case opt_comm:
                 break;
+            case opt_skew:
+                ycsb_skew = clp->val.d;
+                break;
+            case opt_readtype:
+                if (strcmp(clp->val.s, "full") == 0) {
+                    full_read = true;
+                }
+                if (strcmp(clp->val.s, "field") == 0) {
+                    full_read = false;
+                }
+                break;
             default:
                 print_usage(argv[0]);
                 ret = 1;
@@ -252,6 +272,9 @@ public:
                 break;
             }
         }
+
+        std::cout << "YCSB Skew factor: " << ycsb_skew << std::endl;
+        std::cout << "YCSB Read Type: " << (full_read ? "full" : "field") << std::endl;
 
         Clp_DeleteParser(clp);
         if (ret != 0)
@@ -284,7 +307,7 @@ public:
 
         std::thread advancer;
         std::cout << "Generating workload..." << std::endl;
-        workload_generation(runners, mode);
+        workload_generation(runners, mode, ycsb_skew, full_read);
         std::cout << "Done." << std::endl;
         std::cout << "Garbage collection: ";
         if (enable_gc) {

@@ -15,12 +15,12 @@ using bench::get_version;
 using bench::version_adapter;
 
 enum class mode_id : int {
-    ReadOnly = 0, MediumContention, HighContention,
+    YCSB_C = 0, YCSB_B, YCSB_A, YCSB_F,
     WriteCollapse, RWCollapse, ReadCollapse
 };
 
 struct ycsb_key {
-    ycsb_key(uint64_t id) {
+    ycsb_key(uint32_t id) {
         // no scan operations for ycsb,
         // so byte swap is not required.
         w_id = id;
@@ -35,7 +35,8 @@ struct ycsb_key {
         return lcdf::Str((const char *)this, sizeof(*this));
     }
 
-    uint64_t w_id;
+    /* mod: use uint32_t key to match epic */
+    uint32_t w_id;
 };
 
 #define COL_WIDTH 100

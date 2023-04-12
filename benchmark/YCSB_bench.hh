@@ -28,7 +28,8 @@ using bench::ordered_index;
 using bench::mvcc_unordered_index;
 using bench::unordered_index;
 
-static constexpr uint64_t ycsb_table_size = 10000000;
+/* mod: use 1M records for db size */
+static constexpr uint64_t ycsb_table_size = 1000000;
 
 template <typename DBParams>
 class ycsb_db {
@@ -86,19 +87,25 @@ public:
         : db(database), ig(tid), runner_id(tid), mode(mid),
           ud(), dd(), write_threshold() {}
 
-    inline void dist_init() {
+    /* mod: use argument to specify skewness */
+    inline void dist_init(double ycsb_skew) {
         ud = new sampling::StoUniformDistribution<>(ig.generator(), 0, std::numeric_limits<uint32_t>::max());
         switch(mode) {
-            case mode_id::ReadOnly:
-                dd = new sampling::StoUniformDistribution<>(ig.generator(), 0, ycsb_table_size - 1);
+            case mode_id::YCSB_C:
+                dd = new sampling::StoZipfDistribution<>(ig.generator(), 0, ycsb_table_size - 1, ycsb_skew);
                 write_threshold = 0;
                 break;
-            case mode_id::MediumContention:
-                dd = new sampling::StoZipfDistribution<>(ig.generator(), 0, ycsb_table_size - 1, 0.8);
+            case mode_id::YCSB_B:
+                dd = new sampling::StoZipfDistribution<>(ig.generator(), 0, ycsb_table_size - 1, ycsb_skew);
                 write_threshold = (uint32_t) (std::numeric_limits<uint32_t>::max()/20);
                 break;
-            case mode_id::HighContention:
-                dd = new sampling::StoZipfDistribution<>(ig.generator(), 0, ycsb_table_size - 1, 0.99);
+            case mode_id::YCSB_A:
+                dd = new sampling::StoZipfDistribution<>(ig.generator(), 0, ycsb_table_size - 1, ycsb_skew);
+                write_threshold = (uint32_t) (std::numeric_limits<uint32_t>::max()/2);
+                break;
+            /* mod: add ycsb_f 50-50 read-rmw */
+            case mode_id::YCSB_F:
+                dd = new sampling::StoZipfDistribution<>(ig.generator(), 0, ycsb_table_size - 1, ycsb_skew);
                 write_threshold = (uint32_t) (std::numeric_limits<uint32_t>::max()/2);
                 break;
             case mode_id::WriteCollapse:
@@ -112,7 +119,7 @@ public:
         }
     }
 
-    inline void gen_workload(uint64_t threadid, int txn_size);
+    inline void gen_workload(uint64_t threadid, int txn_size, double ycsb_skew, bool full_read);
 
     int id() const {
         return runner_id;
