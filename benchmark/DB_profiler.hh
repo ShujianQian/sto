@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <iomanip>
 
 #include "SystemProfiler.hh"
 #include "Transaction.hh"
@@ -49,7 +50,7 @@ public:
         std::cout << "Estimated time: " << elapsed_time << " ms" << std::endl;
         std::cout << "Wallclock time: " << wallclock_time << " us" << std::endl;
         std::cout << "Throughput: " << (double) num_txns / (elapsed_time / 1000.0) << " txns/sec" << std::endl;
-        std::cout << "Real throughput: " << (double) num_txns / wallclock_time << " MTxns/sec" << std::endl;
+        std::cout << "Real throughput: " << std::setprecision (15) << (double) num_txns / wallclock_time << " MTxns/sec" << std::endl;
 
         // print STO stats
         Transaction::print_stats();
