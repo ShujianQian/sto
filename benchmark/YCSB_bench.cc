@@ -191,7 +191,7 @@ public:
         bool counter_mode = false;
         int num_threads = 1;
         mode_id mode = mode_id::YCSB_C;
-        double time_limit = 10.0;
+        double time_limit = 5.0;
         bool enable_gc = false;
         double ycsb_skew = 0.0;
         bool full_read = true;
