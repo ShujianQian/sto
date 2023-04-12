@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 if(APPLE)
     set(PLATFORM_LIBRARIES pthread m)
 else()
-    set(PLATFORM_LIBRARIES pthread m jemalloc)
+    set(PLATFORM_LIBRARIES pthread m jemalloc numa)
 endif()
 
 include_directories(masstree-beta)
@@ -26,3 +26,6 @@ add_subdirectory(benchmark)
 add_subdirectory(test)
 
 add_library(rd srandomdev.c)
+
+add_library(platform_features lib/PlatformFeatures.cc third-party/rpmalloc/rpmalloc/rpmalloc.c)
+target_link_libraries(platform_features numa)
