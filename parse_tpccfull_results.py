@@ -34,7 +34,7 @@ def main(logs_dir, output_dir):
         for num_w in num_warehouses:
             throughput = []
             for i in range(1, repeat + 1):
-                filename = f"tpcc_{cc_type}_num_warehouses{num_w}_{i}.txt"
+                filename = f"tpccfull_{cc_type}_num_warehouses{num_w}_{i}.txt"
                 filepath = os.path.join(logs_dir, filename)
                 logging.info(f"Parsing {filename}")
                 with open(filepath, 'r') as f:
@@ -49,7 +49,7 @@ def main(logs_dir, output_dir):
             row = [num_w, np.mean(throughput)]
             table.append(row)
         logging.info(f"Saving table for tpcc {cc_type}")
-        csv_filename = f"tpcc_{cc_type}.csv"
+        csv_filename = f"tpccfull_{cc_type}.csv"
         with open(os.path.join(output_dir, csv_filename), 'w') as f:
             writer = csv.writer(f)
             writer.writerows(table)

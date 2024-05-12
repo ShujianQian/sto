@@ -15,8 +15,8 @@ root.addHandler(handler)
 alphas = ["0.0", "0.2", "0.4", "0.6", "0.8", "0.9", "0.95", "0.99"]
 workloads = ["ycsba", "ycsbb", "ycsbc", "ycsbf"]
 cc_types = ["default", "tictoc", "mvcc"]
-read_types = ["field", "full"]
-repeat = 3
+read_types = ["full"]
+repeat = 5
 
 REAL_THROUGHPUT_PATTERN = re.compile(r"Real throughput: (\d+\.\d+) MTxns/sec")
 
