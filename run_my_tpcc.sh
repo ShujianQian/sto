@@ -7,7 +7,7 @@ START_TIME=$SECOND
 
 for cc_type in "${CC_TYPES[@]}"; do
     for num_warehouses in "${NUM_WAREHOUSES[@]}"; do
-                for repeat in {1..5}; do
+                for repeat in {1..3}; do
                     echo "Running TPCC with cc_type=${cc_type}, num_warehouses=${num_warehouses}"
                     filename="${OUTPUT_DIR}/tpcc_${cc_type}_num_warehouses${num_warehouses}_${repeat}.txt"
                     ./tpcc_bench -t32 -m2 "-i${cc_type}" -g -x "-w${num_warehouses}" > "$filename"

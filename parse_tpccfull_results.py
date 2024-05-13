@@ -14,7 +14,7 @@ root.addHandler(handler)
 
 num_warehouses = ["1", "2", "4", "8", "16", "32", "64"]
 cc_types = ["default", "tictoc", "mvcc"]
-repeat = 5
+repeat = 3
 
 REAL_THROUGHPUT_PATTERN = re.compile(r"Real throughput: (\d+\.\d+) MTxns/sec")
 
