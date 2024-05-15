@@ -5,15 +5,21 @@ OUTPUT_DIR=$1
 mkdir -p "$OUTPUT_DIR"
 START_TIME=$SECOND
 
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
 for cc_type in "${CC_TYPES[@]}"; do
     for num_warehouses in "${NUM_WAREHOUSES[@]}"; do
                 for repeat in {1..1}; do
-                    echo "Running TPCC with cc_type=${cc_type}, num_warehouses=${num_warehouses}"
+                    echo -e "${GREEN}Running TPCC with cc_type=${cc_type}, num_warehouses=${num_warehouses}${NC}"
                     filename="${OUTPUT_DIR}/tpcc_${cc_type}_num_warehouses${num_warehouses}_${repeat}.txt"
                     err_filename="${OUTPUT_DIR}/tpcc_${cc_type}_num_warehouses${num_warehouses}_${repeat}.err"
                     ./tpcc_bench -t32 -m2 "-i${cc_type}" -g -x "-w${num_warehouses}" > >(tee $filename) 2> >(tee $err_filename >&2)
                 done
                 ELAPSED_TIME=$((SECONDS - START_TIME))
-                echo "Current Runtime ${ELAPSED_TIME} s"
+                echo -e "${BLUE}Current Runtime ${ELAPSED_TIME} s${NC}"
     done
 done
