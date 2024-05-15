@@ -8,10 +8,14 @@ mkdir -p "$OUTPUT_DIR"
 START_TIME=$SECOND
 
 # Color codes
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+RED="\033[31m"
+GREEN="\033[32m"
+YELLOW="\033[33m"
+BLUE="\033[34m"
+MAGENTA="\033[35m"
+CYAN="\033[36m"
+GREY="\033[90m"
+NC="\033[0m" # No Color
 
 for cc_type in "${CC_TYPES[@]}"; do
     for read_type in "${READ_TYPES[@]}"; do
