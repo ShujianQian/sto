@@ -22,6 +22,9 @@ for cc_type in "${CC_TYPES[@]}"; do
                     filename="${OUTPUT_DIR}/tpcc_${cc_type}_num_warehouses${num_warehouses}_${repeat}.txt"
                     err_filename="${OUTPUT_DIR}/tpcc_${cc_type}_num_warehouses${num_warehouses}_${repeat}.err"
                     ./tpcc_bench -t32 -m2 "-i${cc_type}" -g -x "-w${num_warehouses}" > >(tee $filename) 2> >(tee $err_filename >&2)
+                    if [ $? -ne 0 ]; then
+                      echo -e "${RED}Error running TPCC with cc_type=${cc_type}, num_warehouses=${num_warehouses}${NC}"
+                    fi
                 done
                 ELAPSED_TIME=$((SECONDS - START_TIME))
                 echo -e "${BLUE}Current Runtime ${ELAPSED_TIME} s${NC}"
